@@ -798,8 +798,8 @@ def inject_global_css(user_role):
             .rapatco-mobile-tab-hint {
                 display: block !important;
                 text-align: center;
-                font-size: 11px;
-                color: #94a3b8;
+                font-size: 10px !important;
+                color: #94a3b8 !important;  /* !important supaya tidak ke-override CSS markdown global (line 584) */
                 font-style: italic;
                 margin: 0 0 8px 0 !important;
                 padding: 0 12px;
