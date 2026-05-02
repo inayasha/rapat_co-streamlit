@@ -3259,18 +3259,13 @@ transparent !important; }
                             
                         # 3. Fungsi Eksekusi Mesin Chat & PENJARA ABSOLUT
                         def jalankan_chat_ai(user_question):
-                            # ⏳ SMART COOLDOWN 15 DETIK (ANTI-SPAM)
+                            # ⏳ COOLDOWN: pre-check sudah dipindah ke body fragment (lebih reliable
+                            # untuk render warning persistent + preserve text submit). Sisakan
+                            # defensive silent-return di sini sebagai safety net.
                             import time
                             if 'last_chat_time' in st.session_state:
                                 elapsed = time.time() - st.session_state.last_chat_time
                                 if elapsed < 15:
-                                    sisa_detik = int(15 - elapsed)
-                                    # 🐛 FIX: st.toast() saja sering tidak ter-flush ke browser
-                                    # ketika diikuti `return` tanpa rendering elemen UI lain.
-                                    # Solusi: pasangkan dengan st.warning() yang merender elemen
-                                    # persistent di body fragment — jamin visible feedback ke user.
-                                    st.toast(f"⏳ Mohon tunggu {sisa_detik} detik lagi agar AI dapat memproses konteks dengan optimal.", icon="⏳")
-                                    st.warning(f"⏳ **Mohon tunggu {sisa_detik} detik lagi** agar AI dapat memproses konteks dengan optimal.")
                                     return
                             st.session_state.last_chat_time = time.time()
                         
@@ -3363,17 +3358,61 @@ transparent !important; }
                                     st.session_state.chat_usage_count += 1
 
                         # 4. --- FASE 5: ROUTING MICRO-PAYWALL CHATBOT (RP 1.000) ---
+                        # =========================================================
+                        # 🐛 FIX BUG STREAMLIT #7054: Dynamic placeholder text di st.chat_input
+                        # yang berubah karena state update dari submission menyebabkan submission
+                        # BERIKUTNYA silent dropped (tanpa error, tanpa notif, tidak diproses).
+                        # Setiap user submit pertanyaan & AI berhasil reply, chat_usage_count++ →
+                        # sisa_chat berkurang → label_chat berubah → placeholder berubah → BUG hit.
+                        # Solusi: placeholder STATIC, info quota dipindah ke st.caption di atas widget.
+                        # Ref: https://github.com/streamlit/streamlit/issues/7054
+                        # =========================================================
+                        import time as _time_chat
+
+                        # --- PRE-CHECK COOLDOWN (lebih reliable daripada cek di dalam jalankan_chat_ai) ---
+                        cooldown_active = False
+                        sisa_detik = 0
+                        if 'last_chat_time' in st.session_state:
+                            _elapsed = _time_chat.time() - st.session_state.last_chat_time
+                            if _elapsed < 15:
+                                cooldown_active = True
+                                sisa_detik = int(15 - _elapsed)
+
+                        # --- RESTORE DRAFT (kalau submit sebelumnya kena cooldown) ---
+                        # Set widget value SEBELUM widget instantiate via session_state.
+                        if st.session_state.get('chat_q_pending_restore') is not None:
+                            st.session_state.chat_q_input = st.session_state.chat_q_pending_restore
+                            st.session_state.chat_q_pending_restore = None
+
+                        # --- LABEL QUOTA (dipindah dari placeholder ke caption) ---
                         if st.session_state.user_role == "admin":
                             label_chat = "(Unlimited)"
                         elif sisa_chat > 0:
-                            label_chat = f"Sisa Gratis: {sisa_chat}x Tanya"
+                            label_chat = f"🎁 Sisa Gratis: {sisa_chat}x Tanya"
                         else:
                             label_chat = "💳 Tarif: Rp 1.000 / Tanya"
 
-                        user_q = st.chat_input(f"💬 Tanya AI ({label_chat})", max_chars=200)
+                        st.caption(f"**Status Quota Chat:** {label_chat}")
 
+                        # --- WARNING PERSISTENT KALAU COOLDOWN AKTIF ---
+                        # Render di body fragment (bukan dari toast di dalam callback) → jamin visible.
+                        if cooldown_active:
+                            st.warning(f"⏳ **Mohon tunggu {sisa_detik} detik lagi** agar AI dapat memproses konteks dengan optimal. Pertanyaan Anda tersimpan di kolom — tinggal submit ulang setelah cooldown selesai.")
+
+                        # --- CHAT INPUT DENGAN PLACEHOLDER STATIC + KEY (untuk preserve via session_state) ---
+                        user_q = st.chat_input(
+                            "💬 Tanya AI tentang transkrip ini...",
+                            max_chars=200,
+                            key="chat_q_input"
+                        )
+
+                        # --- HANDLER SUBMIT ---
                         if user_q:
-                            if st.session_state.user_role == "admin":
+                            if cooldown_active:
+                                # Cooldown — preserve text dan rerun fragment untuk render ulang warning
+                                st.session_state.chat_q_pending_restore = user_q
+                                st.rerun(scope="fragment")
+                            elif st.session_state.user_role == "admin":
                                 jalankan_chat_ai(user_q)
                             elif sisa_chat > 0:
                                 # OPSI A: Gunakan Jatah Gratis
