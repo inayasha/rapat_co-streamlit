@@ -492,9 +492,9 @@ def inject_global_css(user_role):
     # --- CUSTOM CSS ---
     st.markdown("""
     <style>
-        /* MENGATUR LEBAR JENDELA UTAMA (DEFAULT: 730px) */
+        /* MENGATUR LEBAR JENDELA UTAMA (Default Streamlit: ~736px, sebelumnya 780px, sekarang 880px untuk meminimalisir overflow tab) */
         .block-container {
-            max-width: 780px !important;
+            max-width: 880px !important;
             padding-top: 2rem !important;
         }
         /* 1. MENGIMPOR FONT MODERN DARI GOOGLE */
