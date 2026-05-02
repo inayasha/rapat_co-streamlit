@@ -987,6 +987,14 @@ st.html(
 tab_titles = ["🔒 Akun", "📂 Upload Audio", "🎙️ Rekam Suara", "📷 Upload Gambar", "🧠 Analisis AI", "🗂️ Arsip"]
 if st.session_state.user_role == "admin": tab_titles.append("⚙️ Panel Admin")
 tabs = st.tabs(tab_titles)
+
+# 💡 HINT MOBILE-ONLY: muncul hanya di layar ≤768px (CSS @media di config.py).
+# Banyak user mobile tidak sadar tab dapat di-scroll horizontal saat overflow.
+st.markdown(
+    '<p class="rapatco-mobile-tab-hint">← Geser untuk melihat tab lainnya →</p>',
+    unsafe_allow_html=True
+)
+
 tab_auth, tab_upload, tab_rekam, tab_vision, tab_ai, tab_arsip = tabs[0], tabs[1], tabs[2], tabs[3], tabs[4], tabs[5]
 
 audio_to_process, source_name = None, "audio"
