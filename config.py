@@ -789,48 +789,22 @@ def inject_global_css(user_role):
             background-color: #FFFFFF !important;
     /* Tetap putih jika sedang aktif */
         }
-        
-        /* =========================================
-           🚀 SCROLL OVERFLOW INDICATOR (UX FIX)
-           Banyak user (mobile & laptop kecil) tidak sadar tab bisa di-scroll
-           horizontal saat overflow. Solusi: fade kanan + hint text mobile.
-           Catatan: fade kiri sengaja dihilangkan karena menutupi tab pertama
-           (Akun). Blok arrow scroll buttons juga dihilangkan karena Streamlit
-           1.57 tidak punya explicit arrow button — selector spekulatif justru
-           nge-match elemen lain dan render bullet merah-putih yang salah posisi.
-           ========================================= */
 
-        /* Tab container jadi positioning context untuk pseudo-element fade */
-        div[data-testid="stTabs"] {
-            position: relative !important;
+        /* === Hint mobile-only di atas tab list (UX bantu user aware tab bisa scroll) === */
+        .rapatco-mobile-tab-hint {
+            display: none;
         }
-
-        /* (B) Gradient fade KANAN saja — visual hint "ada tab lebih ke kanan" */
-        div[data-testid="stTabs"]::after {
-            content: "";
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 28px;
-            height: 52px; /* ≈ tinggi tab area; tidak menutup konten tab */
-            background: linear-gradient(to left, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 100%);
-            pointer-events: none; /* biar klik tab tidak terblok */
-            z-index: 2;
-        }
-
-        /* (D) Hint text mobile-only — pure CSS via ::after pada tab-border.
-           Render tepat di antara tab list dan konten tab. Hide di desktop. */
         @media (max-width: 768px) {
-            div[data-testid="stTabs"] div[data-baseweb="tab-border"]::after {
-                content: "← Geser untuk melihat tab lainnya →";
-                display: block;
+            .rapatco-mobile-tab-hint {
+                display: block !important;
                 text-align: center;
-                font-size: 11.5px;
+                font-size: 11px;
                 color: #94a3b8;
                 font-style: italic;
-                margin: 6px 0 14px 0;
-                padding: 0 10px;
-                line-height: 1.4;
+                margin: 0 0 8px 0 !important;
+                padding: 0 12px;
+                line-height: 1.3;
+                letter-spacing: 0.2px;
                 user-select: none;
                 -webkit-user-select: none;
             }
