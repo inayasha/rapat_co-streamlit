@@ -1,0 +1,18 @@
+[server]
+maxUploadSize = 200
+maxMessageSize = 200
+enableCORS = false
+enableXsrfProtection = false
+enableWebsocketCompression = false
+headless = true
+
+[browser]
+serverAddress = "0.0.0.0"
+gatherUsageStats = false
+
+[theme]
+base = "light"
+primaryColor = "#e74c3c"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F4F6F9"
+textColor = "#111111"
