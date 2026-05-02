@@ -844,6 +844,8 @@ def proses_transkrip_audio(audio_to_process, source_name, lang_code):
         # Tab 'Analisis AI' di sistem Streamlit dan berpindah seketika (Instan).
         # 🔧 MIGRASI: components.html → st.html(unsafe_allow_javascript=True)
         # window.parent.document → document, window.parent.scrollTo → window.scrollTo
+        # 🐛 FIX: Inline onclick="" di-strip oleh Streamlit st.html() sanitization.
+        # Solusi: pakai id + assign onclick via <script> IIFE (pattern sama dengan token card LOKASI 5).
         btn_html = """
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&display=swap');
@@ -855,14 +857,23 @@ def proses_transkrip_audio(audio_to_process, source_name, lang_code):
             }
             .btn-switch-stt:hover { background-color: #333333; transform: translateY(-2px); }
         </style>
-        <button class="btn-switch-stt" onclick="
-            var tabs = document.querySelectorAll('button[data-baseweb=\\'tab\\']');
-            var targetTab = Array.from(tabs).find(tab => tab.innerText.includes('Analisis AI'));
-            if(targetTab) { 
-                targetTab.click(); 
-                window.scrollTo({top: 0, behavior: 'smooth'}); 
-            }
-        ">🧠 Lanjut ke Analisis AI</button>
+        <button class="btn-switch-stt" id="rapatco-btn-switch-stt">🧠 Lanjut ke Analisis AI</button>
+        <script>
+        (function() {
+            var btn = document.getElementById("rapatco-btn-switch-stt");
+            if (!btn) return;
+            btn.onclick = function() {
+                var tabs = document.querySelectorAll('button[data-baseweb="tab"]');
+                var targetTab = Array.from(tabs).find(function(tab) {
+                    return tab.innerText.includes('Analisis AI');
+                });
+                if (targetTab) {
+                    targetTab.click();
+                    window.scrollTo({top: 0, behavior: 'smooth'});
+                }
+            };
+        })();
+        </script>
         """
         st.html(btn_html, unsafe_allow_javascript=True)
 

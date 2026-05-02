@@ -535,6 +535,8 @@ def proses_vision_gambar(image_files: list, source_names: list):
         # 🔧 MIGRASI: components.html → st.html(unsafe_allow_javascript=True)
         # window.parent.document → document, window.parent.scrollTo → window.scrollTo
         # Body styling dihapus karena tidak lagi di iframe (akan apply ke main page kalau dibiarkan).
+        # 🐛 FIX: Inline onclick="" di-strip oleh Streamlit st.html() sanitization.
+        # Solusi: pakai id + assign onclick via <script> IIFE.
         btn_html = """
         <style>
             .btn-vision {
@@ -546,11 +548,23 @@ def proses_vision_gambar(image_files: list, source_names: list):
             }
             .btn-vision:hover { background-color:#333; transform:translateY(-2px); }
         </style>
-        <button class="btn-vision" onclick="
-            var tabs = document.querySelectorAll('button[data-baseweb=\\'tab\\']');
-            var t = Array.from(tabs).find(tab => tab.innerText.includes('Analisis AI'));
-            if(t){ t.click(); window.scrollTo({top:0, behavior:'smooth'}); }
-        ">🧠 Lanjut ke Analisis AI</button>
+        <button class="btn-vision" id="rapatco-btn-vision-next">🧠 Lanjut ke Analisis AI</button>
+        <script>
+        (function() {
+            var btn = document.getElementById("rapatco-btn-vision-next");
+            if (!btn) return;
+            btn.onclick = function() {
+                var tabs = document.querySelectorAll('button[data-baseweb="tab"]');
+                var t = Array.from(tabs).find(function(tab) {
+                    return tab.innerText.includes('Analisis AI');
+                });
+                if (t) {
+                    t.click();
+                    window.scrollTo({top: 0, behavior: 'smooth'});
+                }
+            };
+        })();
+        </script>
         """
         st.html(btn_html, unsafe_allow_javascript=True)
 
