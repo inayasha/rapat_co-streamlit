@@ -105,7 +105,7 @@ def buat_tagihan_duitku(nama_paket, harga, user_email, corporate_name="", nama_l
             }
         },
         "callbackUrl": "https://tomstt-webhook-duitku.tommy-huawei.workers.dev", 
-        "returnUrl": "https://rapat.co", 
+        "returnUrl": "https://rapat-dev.streamlit.app", 
         "expiryPeriod": 60 
     }
     
