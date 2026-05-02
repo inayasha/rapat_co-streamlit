@@ -3264,7 +3264,13 @@ transparent !important; }
                             if 'last_chat_time' in st.session_state:
                                 elapsed = time.time() - st.session_state.last_chat_time
                                 if elapsed < 15:
-                                    st.toast(f"⏳ Mohon tunggu {int(15 - elapsed)} detik lagi agar AI dapat memproses konteks dengan optimal.", icon="⏳")
+                                    sisa_detik = int(15 - elapsed)
+                                    # 🐛 FIX: st.toast() saja sering tidak ter-flush ke browser
+                                    # ketika diikuti `return` tanpa rendering elemen UI lain.
+                                    # Solusi: pasangkan dengan st.warning() yang merender elemen
+                                    # persistent di body fragment — jamin visible feedback ke user.
+                                    st.toast(f"⏳ Mohon tunggu {sisa_detik} detik lagi agar AI dapat memproses konteks dengan optimal.", icon="⏳")
+                                    st.warning(f"⏳ **Mohon tunggu {sisa_detik} detik lagi** agar AI dapat memproses konteks dengan optimal.")
                                     return
                             st.session_state.last_chat_time = time.time()
                         
