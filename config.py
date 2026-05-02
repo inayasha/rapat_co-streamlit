@@ -793,79 +793,42 @@ def inject_global_css(user_role):
         /* =========================================
            🚀 SCROLL OVERFLOW INDICATOR (UX FIX)
            Banyak user (mobile & laptop kecil) tidak sadar tab bisa di-scroll
-           horizontal ketika overflow. Kombinasi: fade gradient di pinggir,
-           arrow buttons brand color, dan hint text di mobile.
+           horizontal saat overflow. Solusi: fade kanan + hint text mobile.
+           Catatan: fade kiri sengaja dihilangkan karena menutupi tab pertama
+           (Akun). Blok arrow scroll buttons juga dihilangkan karena Streamlit
+           1.57 tidak punya explicit arrow button — selector spekulatif justru
+           nge-match elemen lain dan render bullet merah-putih yang salah posisi.
            ========================================= */
 
-        /* (A) Arrow scroll buttons — pakai warna brand merah dengan circle background.
-           Multiple selector fallback karena BaseUI version berbeda bisa pakai class berbeda. */
-        div[data-testid="stTabs"] button[aria-label*="scroll" i],
-        div[data-testid="stTabs"] button[aria-label*="next" i],
-        div[data-testid="stTabs"] button[aria-label*="prev" i],
-        div[data-testid="stTabs"] [data-baseweb="tab-list"] > button:not([data-baseweb="tab"]) {
-            background-color: #e74c3c !important;
-            color: #ffffff !important;
-            border-radius: 50% !important;
-            min-width: 32px !important;
-            width: 32px !important;
-            height: 32px !important;
-            padding: 0 !important;
-            margin: 0 4px !important;
-            box-shadow: 0 2px 6px rgba(231, 76, 60, 0.35) !important;
-            opacity: 1 !important;
-            border: 2px solid #ffffff !important;
-            z-index: 3 !important;
-            position: relative !important;
-        }
-        div[data-testid="stTabs"] button[aria-label*="scroll" i] svg,
-        div[data-testid="stTabs"] button[aria-label*="next" i] svg,
-        div[data-testid="stTabs"] button[aria-label*="prev" i] svg,
-        div[data-testid="stTabs"] [data-baseweb="tab-list"] > button:not([data-baseweb="tab"]) svg {
-            fill: #ffffff !important;
-            color: #ffffff !important;
-        }
-
-        /* (B) Gradient fade di pinggir kiri & kanan tab area — visual hint
-           "ada lebih konten di luar viewport". stTabs jadi positioning context. */
+        /* Tab container jadi positioning context untuk pseudo-element fade */
         div[data-testid="stTabs"] {
             position: relative !important;
         }
-        div[data-testid="stTabs"]::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 28px;
-            height: 52px; /* ≈ tinggi tab area; tidak menutup konten tab */
-            background: linear-gradient(to right, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 100%);
-            pointer-events: none; /* biar klik tab tidak terblok */
-            z-index: 2;
-        }
+
+        /* (B) Gradient fade KANAN saja — visual hint "ada tab lebih ke kanan" */
         div[data-testid="stTabs"]::after {
             content: "";
             position: absolute;
             right: 0;
             top: 0;
             width: 28px;
-            height: 52px;
+            height: 52px; /* ≈ tinggi tab area; tidak menutup konten tab */
             background: linear-gradient(to left, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 100%);
-            pointer-events: none;
+            pointer-events: none; /* biar klik tab tidak terblok */
             z-index: 2;
         }
 
-        /* (D) Hint text mobile-only — di-render via st.markdown di app.py
-           dengan class .rapatco-mobile-tab-hint. Default: hidden di desktop. */
-        .rapatco-mobile-tab-hint {
-            display: none;
-        }
+        /* (D) Hint text mobile-only — pure CSS via ::after pada tab-border.
+           Render tepat di antara tab list dan konten tab. Hide di desktop. */
         @media (max-width: 768px) {
-            .rapatco-mobile-tab-hint {
-                display: block !important;
+            div[data-testid="stTabs"] div[data-baseweb="tab-border"]::after {
+                content: "← Geser untuk melihat tab lainnya →";
+                display: block;
                 text-align: center;
                 font-size: 11.5px;
                 color: #94a3b8;
                 font-style: italic;
-                margin: 6px 0 14px 0 !important;
+                margin: 6px 0 14px 0;
                 padding: 0 10px;
                 line-height: 1.4;
                 user-select: none;
