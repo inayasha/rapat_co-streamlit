@@ -1,6 +1,6 @@
 streamlit
 SpeechRecognition
-google-generativeai
+google-generativeai==0.8.5
 groq
 python-docx
 firebase-admin
