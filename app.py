@@ -987,10 +987,13 @@ st.html(
 tab_titles = ["🔒 Akun", "📂 Upload Audio", "🎙️ Rekam Suara", "📷 Upload Gambar", "🧠 Analisis AI", "🗂️ Arsip"]
 if st.session_state.user_role == "admin": tab_titles.append("⚙️ Panel Admin")
 
-# 💡 HINT MOBILE-ONLY: muncul hanya di layar ≤768px (CSS @media di config.py).
-# Banyak user mobile tidak sadar tab dapat di-scroll horizontal saat overflow.
+# 💡 HINT TAB SCROLLABLE: muncul di atas tab list, bahasa beda per device.
+# - Mobile (≤768px): "Geser tab untuk lihat fitur lain" (touch language)
+# - Desktop (>768px): "Tab dapat digeser untuk lihat fitur lain" (mouse/trackpad language)
+# Tab selalu overflow di rapat.co karena layout="centered" — hint selalu relevant di semua viewport.
 st.markdown(
-    '<p class="rapatco-mobile-tab-hint">💡 Geser tab untuk lihat lainnya</p>',
+    '<p class="rapatco-tab-hint rapatco-hint-mobile">💡 Geser tab untuk lihat fitur lain</p>'
+    '<p class="rapatco-tab-hint rapatco-hint-desktop">💡 Tab dapat digeser untuk lihat fitur lain</p>',
     unsafe_allow_html=True
 )
 

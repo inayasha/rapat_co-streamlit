@@ -790,23 +790,34 @@ def inject_global_css(user_role):
     /* Tetap putih jika sedang aktif */
         }
 
-        /* === Hint mobile-only di atas tab list (UX bantu user aware tab bisa scroll) === */
-        .rapatco-mobile-tab-hint {
-            display: none;
+        /* === Hint tab scrollable — base style + visibility per device === */
+        .rapatco-tab-hint {
+            text-align: center;
+            font-size: 10px !important;
+            color: #94a3b8 !important;  /* !important supaya tidak ke-override CSS markdown global (line 584) */
+            font-style: italic;
+            margin: 0 0 8px 0 !important;
+            padding: 0 12px;
+            line-height: 1.3;
+            letter-spacing: 0.2px;
+            user-select: none;
+            -webkit-user-select: none;
         }
+        /* Default state: kedua varian disembunyikan, lalu di-enable via media query sesuai device */
+        .rapatco-hint-mobile,
+        .rapatco-hint-desktop {
+            display: none !important;
+        }
+        /* Mobile (≤768px): tampilkan varian mobile */
         @media (max-width: 768px) {
-            .rapatco-mobile-tab-hint {
+            .rapatco-hint-mobile {
                 display: block !important;
-                text-align: center;
-                font-size: 10px !important;
-                color: #94a3b8 !important;  /* !important supaya tidak ke-override CSS markdown global (line 584) */
-                font-style: italic;
-                margin: 0 0 8px 0 !important;
-                padding: 0 12px;
-                line-height: 1.3;
-                letter-spacing: 0.2px;
-                user-select: none;
-                -webkit-user-select: none;
+            }
+        }
+        /* Laptop / Desktop (>768px): tampilkan varian desktop */
+        @media (min-width: 769px) {
+            .rapatco-hint-desktop {
+                display: block !important;
             }
         }
 
