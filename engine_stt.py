@@ -842,28 +842,29 @@ def proses_transkrip_audio(audio_to_process, source_name, lang_code):
         # 🔥 FITUR BARU: TOMBOL PINDAH TAB OTOMATIS (JAVASCRIPT INJECTION)
         # Tombol ini dibuat menggunakan HTML/JS agar saat diklik, ia akan mencari 
         # Tab 'Analisis AI' di sistem Streamlit dan berpindah seketika (Instan).
+        # 🔧 MIGRASI: components.html → st.html(unsafe_allow_javascript=True)
+        # window.parent.document → document, window.parent.scrollTo → window.scrollTo
         btn_html = """
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700&display=swap');
-            body { margin: 0; padding: 0; background-color: transparent; }
-            .btn-switch {
+            .btn-switch-stt {
                 background-color: #000000; color: #FFFFFF; font-family: 'Plus Jakarta Sans', sans-serif;
                 border: none; padding: 14px 20px; font-size: 16px; font-weight: 700;
                 border-radius: 10px; width: 100%; cursor: pointer; transition: all 0.2s;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: block; box-sizing: border-box;
             }
-            .btn-switch:hover { background-color: #333333; transform: translateY(-2px); }
+            .btn-switch-stt:hover { background-color: #333333; transform: translateY(-2px); }
         </style>
-        <button class="btn-switch" onclick="
-            var tabs = window.parent.document.querySelectorAll('button[data-baseweb=\\'tab\\']');
+        <button class="btn-switch-stt" onclick="
+            var tabs = document.querySelectorAll('button[data-baseweb=\\'tab\\']');
             var targetTab = Array.from(tabs).find(tab => tab.innerText.includes('Analisis AI'));
             if(targetTab) { 
                 targetTab.click(); 
-                window.parent.scrollTo({top: 0, behavior: 'smooth'}); 
+                window.scrollTo({top: 0, behavior: 'smooth'}); 
             }
         ">🧠 Lanjut ke Analisis AI</button>
         """
-        components.html(btn_html, height=70)
+        st.html(btn_html, unsafe_allow_javascript=True)
 
     except Exception as e:
         status_box.empty()

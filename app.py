@@ -832,32 +832,38 @@ cursor: pointer; width: 100%; font-size: 14px; transition: 0.2s; }}
 """, unsafe_allow_html=True)
 
         # --- ⚙️ JAVASCRIPT LOGIC ---
-        components.html(f"""
+        # 🔧 MIGRASI: components.html → st.html(unsafe_allow_javascript=True)
+        # st.html render di main DOM (bukan iframe), jadi:
+        #   - window.parent.document → document
+        #   - window.parent.sessionStorage → window.sessionStorage
+        # Bungkus IIFE supaya const tidak bentrok saat Streamlit rerun.
+        st.html(f"""
         <script>
-            const parentDoc = window.parent.document;
-            const modal = parentDoc.getElementById('custom-promo-modal');
-            const btnTutup = parentDoc.getElementById('btn-tutup-promo');
-            const btnTutupX = parentDoc.getElementById('btn-tutup-x');
+        (function() {{
+            const modal = document.getElementById('custom-promo-modal');
+            const btnTutup = document.getElementById('btn-tutup-promo');
+            const btnTutupX = document.getElementById('btn-tutup-x');
             
             const versi = "{versi_saat_ini}";
             const memoriKey = 'promo_ditutup_v' + versi;
             
             if (modal) {{
-                const statusMemori = window.parent.sessionStorage.getItem(memoriKey);
+                const statusMemori = window.sessionStorage.getItem(memoriKey);
                 if (statusMemori !== 'true') {{
                     modal.style.display = 'flex';
                 }}
                 
                 const aksiTutup = function() {{
                     modal.style.display = 'none';
-                    window.parent.sessionStorage.setItem(memoriKey, 'true'); 
+                    window.sessionStorage.setItem(memoriKey, 'true'); 
                 }};
                 
                 if (btnTutup) btnTutup.onclick = aksiTutup;
                 if (btnTutupX) btnTutupX.onclick = aksiTutup;
             }}
+        }})();
         </script>
-        """, height=0, width=0)
+        """, unsafe_allow_javascript=True)
 
 # --- 📢 PAPAN PENGUMUMAN DINAMIS ---
 # sys_config sudah di-load di atas (Pop-up Promo), tidak perlu panggil ulang
@@ -947,28 +953,35 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- FITUR WAKE LOCK (ANTI-LAYAR MATI) ---
-components.html(
+# 🔧 MIGRASI: components.html → st.html(unsafe_allow_javascript=True)
+# Tidak ada window.parent.* di sini, hanya pakai navigator API standar.
+# Bungkus IIFE + flag global supaya request hanya 1x meskipun Streamlit rerun.
+st.html(
     """
     <script>
-    async function requestWakeLock() {
-        try {
-            if ('wakeLock' in navigator) {
-                const wakeLock = await navigator.wakeLock.request('screen');
-                console.log('Wake Lock aktif: Layar tidak akan mati.');
-                document.addEventListener('visibilitychange', async () => {
-                    if (document.visibilityState === 'visible') {
-                        await navigator.wakeLock.request('screen');
-                    }
-                });
+    (function() {
+        if (window.__rapatcoWakeLockInit) return;
+        window.__rapatcoWakeLockInit = true;
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    const wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock aktif: Layar tidak akan mati.');
+                    document.addEventListener('visibilitychange', async () => {
+                        if (document.visibilityState === 'visible') {
+                            await navigator.wakeLock.request('screen');
+                        }
+                    });
+                }
+            } catch (err) {
+                console.log('Wake Lock error: ' + err.message);
             }
-        } catch (err) {
-            console.log('Wake Lock error: ' + err.message);
         }
-    }
-    requestWakeLock();
+        requestWakeLock();
+    })();
     </script>
     """,
-    height=0, width=0
+    unsafe_allow_javascript=True
 )
 
 tab_titles = ["🔒 Akun", "📂 Upload Audio", "🎙️ Rekam Suara", "📷 Upload Gambar", "🧠 Analisis AI", "🗂️ Arsip"]
@@ -1721,11 +1734,15 @@ error.</i><br><br>
                             if 'temp_user_data' in st.session_state: del st.session_state['temp_user_data']
                         
                             st.success(f"✔ Tagihan Lunas! ({jumlah_karakter:,} Karakter | Beban Setara {durasi_teks} Menit). Mengalihkan ke AI...")
-                            components.html("""<script>
-                                var tabs = window.parent.document.querySelectorAll('button[data-baseweb=\\'tab\\']');
-                                var targetTab = Array.from(tabs).find(tab => tab.innerText.includes('Analisis AI'));
-                                if(targetTab) { targetTab.click(); window.parent.scrollTo({top: 0, behavior: 'smooth'}); }
-                            </script>""", height=0)
+                            # 🔧 MIGRASI: components.html → st.html(unsafe_allow_javascript=True)
+                            # window.parent.document → document, window.parent.scrollTo → window.scrollTo
+                            st.html("""<script>
+                                (function() {
+                                    var tabs = document.querySelectorAll('button[data-baseweb=\\'tab\\']');
+                                    var targetTab = Array.from(tabs).find(tab => tab.innerText.includes('Analisis AI'));
+                                    if(targetTab) { targetTab.click(); window.scrollTo({top: 0, behavior: 'smooth'}); }
+                                })();
+                            </script>""", unsafe_allow_javascript=True)
                         
                             import time
                             time.sleep(1) 
@@ -1787,12 +1804,13 @@ error.</i><br><br>
 
                     st.success(f"✔ Token untuk **{nama_tkn}** · Paket: {paket_tkn}")
 
-                    # Token card — iframe kebal user-select:none global
-                    components.html(f"""
+                    # Token card — 🔧 MIGRASI: components.html → st.html(unsafe_allow_javascript=True)
+                    # Tidak pakai window.parent.* — JS hanya beroperasi pada element lokal.
+                    # Bungkus IIFE + namespace agar function copyToken tidak bentrok antar render.
+                    st.html(f"""
                     <style>
-                        * {{ margin:0; padding:0; box-sizing:border-box; }}
-                        body {{ background:transparent; font-family:'Segoe UI',sans-serif; padding:6px; }}
-                        .card {{
+                        .rapatco-token-card * {{ margin:0; padding:0; box-sizing:border-box; }}
+                        .rapatco-token-card .card {{
                             background: #FFFFFF;
                             border-radius: 20px;
                             border: 1.5px solid #E2E8F0;
@@ -1801,57 +1819,67 @@ error.</i><br><br>
                             cursor: pointer;
                             user-select: none;
                             transition: transform .12s, border-color .15s;
+                            font-family:'Segoe UI',sans-serif;
                         }}
-                        .card:hover {{
+                        .rapatco-token-card .card:hover {{
                             transform: scale(1.01);
                             border-color: #94A3B8;
                         }}
-                        .card:active {{ transform:scale(0.98); }}
-                        .label  {{ font-size:11px; color:#94A3B8; letter-spacing:2px;
+                        .rapatco-token-card .card:active {{ transform:scale(0.98); }}
+                        .rapatco-token-card .label  {{ font-size:11px; color:#94A3B8; letter-spacing:2px;
                                    text-transform:uppercase; margin-bottom:10px; }}
-                        .token  {{ font-size:52px; font-weight:900; letter-spacing:4px;
+                        .rapatco-token-card .token  {{ font-size:52px; font-weight:900; letter-spacing:4px;
                                    font-family:'Courier New',monospace; color:#0F172A;
                                    line-height:1; margin-bottom:12px; }}
-                        .hint   {{ font-size:13px; color:#64748B; }}
-                        .toast  {{ display:none; margin-top:10px; background:#22C55E;
+                        .rapatco-token-card .hint   {{ font-size:13px; color:#64748B; }}
+                        .rapatco-token-card .toast  {{ display:none; margin-top:10px; background:#22C55E;
                                    color:#fff; border-radius:8px; padding:7px 0;
                                    font-size:14px; font-weight:700; }}
                     </style>
 
-                    <div class="card" onclick="copyToken()">
-                        <div class="label">Kode Token TOM'STT AI Recorder</div>
-                        <div class="token">{token}</div>
-                        <div class="hint">🖱 Klik untuk Copy Token &nbsp;·&nbsp; ⏱ Berlaku 15 menit</div>
-                        <div class="toast" id="toast">✔&nbsp; Token berhasil dicopy!</div>
+                    <div class="rapatco-token-card">
+                        <div class="card" id="rapatco-token-card-btn">
+                            <div class="label">Kode Token TOM'STT AI Recorder</div>
+                            <div class="token">{token}</div>
+                            <div class="hint">🖱 Klik untuk Copy Token &nbsp;·&nbsp; ⏱ Berlaku 15 menit</div>
+                            <div class="toast" id="rapatco-toast">✔&nbsp; Token berhasil dicopy!</div>
+                        </div>
                     </div>
 
                     <script>
-                    function copyToken() {{
+                    (function() {{
                         var code = "{token}";
-                        if (navigator.clipboard && navigator.clipboard.writeText) {{
-                            navigator.clipboard.writeText(code)
-                                .then(showToast)
-                                .catch(function() {{ fallbackCopy(code); }});
-                        }} else {{
-                            fallbackCopy(code);
+                        var cardBtn = document.getElementById("rapatco-token-card-btn");
+                        var toast = document.getElementById("rapatco-toast");
+                        if (!cardBtn) return;
+
+                        function showToast() {{
+                            if (!toast) return;
+                            toast.style.display = "block";
+                            setTimeout(function() {{ toast.style.display = "none"; }}, 2000);
                         }}
-                    }}
-                    function fallbackCopy(text) {{
-                        var ta = document.createElement("textarea");
-                        ta.value = text;
-                        ta.style.cssText = "position:fixed;opacity:0;top:0;left:0;";
-                        document.body.appendChild(ta);
-                        ta.focus(); ta.select();
-                        try {{ document.execCommand("copy"); showToast(); }} catch(e) {{}}
-                        document.body.removeChild(ta);
-                    }}
-                    function showToast() {{
-                        var t = document.getElementById("toast");
-                        t.style.display = "block";
-                        setTimeout(function() {{ t.style.display = "none"; }}, 2000);
-                    }}
+                        function fallbackCopy(text) {{
+                            var ta = document.createElement("textarea");
+                            ta.value = text;
+                            ta.style.cssText = "position:fixed;opacity:0;top:0;left:0;";
+                            document.body.appendChild(ta);
+                            ta.focus(); ta.select();
+                            try {{ document.execCommand("copy"); showToast(); }} catch(e) {{}}
+                            document.body.removeChild(ta);
+                        }}
+                        function copyToken() {{
+                            if (navigator.clipboard && navigator.clipboard.writeText) {{
+                                navigator.clipboard.writeText(code)
+                                    .then(showToast)
+                                    .catch(function() {{ fallbackCopy(code); }});
+                            }} else {{
+                                fallbackCopy(code);
+                            }}
+                        }}
+                        cardBtn.onclick = copyToken;
+                    }})();
                     </script>
-                    """, height=230)
+                    """, unsafe_allow_javascript=True)
 
                     st.markdown(
                         "**Cara pakai:**\n"

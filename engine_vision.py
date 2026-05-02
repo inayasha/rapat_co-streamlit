@@ -532,6 +532,9 @@ def proses_vision_gambar(image_files: list, source_names: list):
             unsafe_allow_html=True
         )
 
+        # 🔧 MIGRASI: components.html → st.html(unsafe_allow_javascript=True)
+        # window.parent.document → document, window.parent.scrollTo → window.scrollTo
+        # Body styling dihapus karena tidak lagi di iframe (akan apply ke main page kalau dibiarkan).
         btn_html = """
         <style>
             .btn-vision {
@@ -544,12 +547,12 @@ def proses_vision_gambar(image_files: list, source_names: list):
             .btn-vision:hover { background-color:#333; transform:translateY(-2px); }
         </style>
         <button class="btn-vision" onclick="
-            var tabs = window.parent.document.querySelectorAll('button[data-baseweb=\\'tab\\']');
+            var tabs = document.querySelectorAll('button[data-baseweb=\\'tab\\']');
             var t = Array.from(tabs).find(tab => tab.innerText.includes('Analisis AI'));
-            if(t){ t.click(); window.parent.scrollTo({top:0, behavior:'smooth'}); }
+            if(t){ t.click(); window.scrollTo({top:0, behavior:'smooth'}); }
         ">🧠 Lanjut ke Analisis AI</button>
         """
-        components.html(btn_html, height=70)
+        st.html(btn_html, unsafe_allow_javascript=True)
 
         return result_text
 

@@ -347,30 +347,34 @@ import streamlit.components.v1 as components
 
 def inject_ga4():
     # --- 📊 INJEKSI GOOGLE ANALYTICS 4 (GA4) ---
+    # 🔧 MIGRASI: components.html → st.html(unsafe_allow_javascript=True)
+    # st.html render di main DOM, jadi document.head langsung adalah <head> Streamlit.
+    # Anti-double-injection check tetap KRUSIAL agar GA tidak load berulang saat rerun.
     ga_tracking_id = "G-DMFD8SE0SY"
     ga_script = f"""
     <script>
+    (function() {{
         // Mencegah injeksi ganda saat Streamlit melakukan re-run/refresh
-        if (!window.parent.document.getElementById('ga-script')) {{
-          
-      var gtagScript = window.parent.document.createElement('script');
+        if (!document.getElementById('ga-script')) {{
+            var gtagScript = document.createElement('script');
             gtagScript.id = 'ga-script';
             gtagScript.src = "https://www.googletagmanager.com/gtag/js?id={ga_tracking_id}";
             gtagScript.async = true;
-            window.parent.document.head.appendChild(gtagScript);
+            document.head.appendChild(gtagScript);
 
-            var gtagConfig = window.parent.document.createElement('script');
-    gtagConfig.innerHTML = `
+            var gtagConfig = document.createElement('script');
+            gtagConfig.innerHTML = `
               window.dataLayer = window.dataLayer || [];
-    function gtag(){{dataLayer.push(arguments);}}
+              function gtag(){{dataLayer.push(arguments);}}
               gtag('js', new Date());
               gtag('config', '{ga_tracking_id}');
             `;
-            window.parent.document.head.appendChild(gtagConfig);
-    }}
+            document.head.appendChild(gtagConfig);
+        }}
+    }})();
     </script>
     """
-    components.html(ga_script, height=0, width=0)
+    st.html(ga_script, unsafe_allow_javascript=True)
 
 def inject_global_css(user_role):
 
@@ -403,18 +407,26 @@ def inject_global_css(user_role):
         """, unsafe_allow_html=True)
 
         # 2. JavaScript Anti-Klik Kanan & Anti-Inspect Element
-        components.html("""
+        # 🔧 MIGRASI: components.html → st.html(unsafe_allow_javascript=True)
+        # KEUNTUNGAN MIGRASI: dulu listener attach ke iframe kosong (tidak efektif),
+        # sekarang attach ke main DOM Streamlit (efektif penuh).
+        # Pakai flag global untuk hindari multiple listeners saat Streamlit rerun.
+        st.html("""
             <script>
-            document.addEventListener('contextmenu', event => event.preventDefault());
-            document.onkeydown = function(e) {
-                if(e.keyCode == 123) { return false; } 
-                if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) { return false; }
-                if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) { return false; }
-                if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) { return false; }
-                if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) { return false; }
-            }
+            (function() {
+                if (window.__rapatcoAntiInspect) return;
+                window.__rapatcoAntiInspect = true;
+                document.addEventListener('contextmenu', event => event.preventDefault());
+                document.onkeydown = function(e) {
+                    if(e.keyCode == 123) { return false; } 
+                    if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) { return false; }
+                    if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) { return false; }
+                    if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) { return false; }
+                    if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) { return false; }
+                }
+            })();
             </script>
-        """, height=0, width=0)
+        """, unsafe_allow_javascript=True)
         
     # ==========================================
     # HIJACK STREAMLIT LOADING MENJADI OVERLAY KUSTOM (GLOBAL)
@@ -785,29 +797,32 @@ def inject_global_css(user_role):
 # FUNGSI AUTO-SCROLL DIALOG KE ATAS (UNTUK MOBILE UX)
 # ==========================================
 def auto_scroll_dialog_top():
-    components.html("""
+    # 🔧 MIGRASI: components.html → st.html(unsafe_allow_javascript=True)
+    # window.parent.document → document (st.html render di main DOM langsung)
+    st.html("""
         <script>
-        setTimeout(function() {
-            const parent = window.parent.document;
-            const dialog = parent.querySelector('div[role="dialog"]');
-            if (dialog) {
-                // 1. Gulung elemen utama
-                dialog.scrollTo({top: 0, behavior: 'smooth'});
-                if (dialog.parentElement) dialog.parentElement.scrollTo({top: 0, behavior: 'smooth'});
-                
-                // 2. Cari dan gulung kontainer yang memiliki scrollbar di dalamnya
-                const scrollables = dialog.querySelectorAll('div');
-                scrollables.forEach(div => {
-                    const style = window.getComputedStyle(div);
-                    if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                        div.scrollTo({top: 0, behavior: 'smooth'});
-                    }
-                });
-            }
-        }, 150);
-        // Jeda milidetik agar pesan sukses sempat dirender
+        (function() {
+            setTimeout(function() {
+                const dialog = document.querySelector('div[role="dialog"]');
+                if (dialog) {
+                    // 1. Gulung elemen utama
+                    dialog.scrollTo({top: 0, behavior: 'smooth'});
+                    if (dialog.parentElement) dialog.parentElement.scrollTo({top: 0, behavior: 'smooth'});
+                    
+                    // 2. Cari dan gulung kontainer yang memiliki scrollbar di dalamnya
+                    const scrollables = dialog.querySelectorAll('div');
+                    scrollables.forEach(div => {
+                        const style = window.getComputedStyle(div);
+                        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                            div.scrollTo({top: 0, behavior: 'smooth'});
+                        }
+                    });
+                }
+            }, 150);
+            // Jeda milidetik agar pesan sukses sempat dirender
+        })();
         </script>
-    """, height=0, width=0)
+    """, unsafe_allow_javascript=True)
 
 def show_mobile_warning():
     st.markdown("""
