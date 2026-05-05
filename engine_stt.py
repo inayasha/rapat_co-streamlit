@@ -64,10 +64,19 @@ def create_docx(text, title):
             continue
             
         # --- FITUR DETEKSI & RENDER TABEL (KHUSUS RTL & QNA) ---
-        if line_str.startswith('|') and line_str.endswith('|'):
-            cells = [c.strip() for c in line_str.strip('|').split('|')]
+        # Handle dua format markdown table:
+        #   Format A (standar)  : | col1 | col2 | col3 |
+        #   Format B (AI style) : col1 | col2 | col3    (tanpa leading/trailing pipe)
+        if line_str.count('|') >= 2:
+            normalized = line_str
+            if normalized.startswith('|'):
+                normalized = normalized[1:]
+            if normalized.endswith('|'):
+                normalized = normalized[:-1]
+            cells = [c.strip() for c in normalized.split('|')]
             
-            if len(cells) > 0 and all(re.match(r'^[-:\s]+$', c) for c in cells):
+            # Lewati baris separator (--- atau :---:)
+            if all(re.match(r'^[-:\s]+$', c) for c in cells if c):
                 continue 
                 
             if not in_table:
