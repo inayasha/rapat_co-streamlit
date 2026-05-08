@@ -3015,6 +3015,8 @@ Enterprise, atau seluruh Paket AIO</b>.
                                                     raise Exception("Request timeout setelah 90 detik")
                                                 _ex_ai.shutdown(wait=False)
                                                 ai_result = response.text
+                                                st.session_state.last_ai_provider = "Gemini"
+                                                st.session_state.last_ai_model    = _gmodel
                                                 _bobot = max(1, len(st.session_state.transcript) // 500) if key_data.get("is_paid") else 1
                                                 increment_api_usage(key_data["id"], key_data["used"], count=_bobot)
                                             elif engine_choice == "Groq":
@@ -3025,6 +3027,8 @@ Enterprise, atau seluruh Paket AIO</b>.
                                                     temperature=0.4,
                                                 )
                                                 ai_result = completion.choices[0].message.content
+                                                st.session_state.last_ai_provider = "Groq"
+                                                st.session_state.last_ai_model    = _m or "llama-3.3-70b-versatile"
                                                 increment_api_usage(key_data["id"], key_data["used"], count=max(1, len(st.session_state.transcript)//500) if key_data.get("is_paid") else 1)
                                             elif engine_choice == "Cohere":
                                                 co = cohere.Client(api_key=key_data["key"], timeout=90)
@@ -3035,6 +3039,8 @@ Enterprise, atau seluruh Paket AIO</b>.
                                                     temperature=0.4
                                                 )
                                                 ai_result = response.text
+                                                st.session_state.last_ai_provider = "Cohere"
+                                                st.session_state.last_ai_model    = _m or "command-a-03-2025"
                                                 increment_api_usage(key_data["id"], key_data["used"], count=max(1, len(st.session_state.transcript)//500) if key_data.get("is_paid") else 1)
                                             success_generation = True
                                             _key_ok = True
@@ -3167,12 +3173,18 @@ Enterprise, atau seluruh Paket AIO</b>.
                                     if sec_mode_save_2 != "Zero Retention (v0)":
                                         # Menyimpan semua data dengan menempelkan label 'hak_arsip'
                                         db.collection('users').document(st.session_state.current_user).collection('history').add({
-                                            "filename": st.session_state.filename,
-                                            "transcript": st.session_state.transcript,
-                                            "ai_result": st.session_state.ai_result,
-                                            "ai_prefix": st.session_state.ai_prefix,
-                                            "hak_arsip": hak_arsip,
-                                            "created_at": firestore.SERVER_TIMESTAMP
+                                            "filename":     st.session_state.filename,
+                                            "transcript":   st.session_state.transcript,
+                                            "ai_result":    st.session_state.ai_result,
+                                            "ai_prefix":    st.session_state.ai_prefix,
+                                            "hak_arsip":    hak_arsip,
+                                            "created_at":   firestore.SERVER_TIMESTAMP,
+                                            # 📊 Tracking API usage per aktivitas
+                                            "input_type":   "teks" if st.session_state.get("is_text_upload", False) else "audio",
+                                            "stt_provider": st.session_state.get("last_stt_provider", "-") if not st.session_state.get("is_text_upload", False) else "-",
+                                            "stt_model":    st.session_state.get("last_stt_model", "-")    if not st.session_state.get("is_text_upload", False) else "-",
+                                            "ai_provider":  st.session_state.get("last_ai_provider", engine_choice),
+                                            "ai_model":     st.session_state.get("last_ai_model", "-"),
                                         })
                                 
                                     st.success(f"✔ **Proses Selesai!**")

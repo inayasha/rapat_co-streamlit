@@ -644,6 +644,9 @@ def proses_transkrip_audio(audio_to_process, source_name, lang_code):
                 # Sehingga limit Groq Whisper bisa diset dalam satuan "menit audio per hari"
                 _groq_menit = max(1, durasi_menit_aktual)
                 increment_api_usage(active_keys[0]["id"], active_keys[0]["used"], count=_groq_menit)
+                # 📝 Catat STT provider yang berhasil
+                st.session_state.last_stt_provider = "Groq Whisper"
+                st.session_state.last_stt_model    = model_name
 
             except Exception as _groq_err:
                 # ── FALLBACK: Groq gagal → otomatis ke Google chunking ──
@@ -745,7 +748,11 @@ def proses_transkrip_audio(audio_to_process, source_name, lang_code):
         
         st.session_state.transcript = hasil_akhir_teks
         st.session_state.filename = os.path.splitext(source_name)[0]
-        st.session_state.ai_result = "" 
+        st.session_state.ai_result = ""
+        # 📝 Catat STT provider — SpeechRecognition jika Groq tidak dipakai atau gagal
+        if not use_groq or groq_failed:
+            st.session_state.last_stt_provider = "Google SpeechRecognition"
+            st.session_state.last_stt_model    = "google"
         
         # --- PERBAIKAN: EKSEKUSI PEMOTONGAN KUOTA AUDIO ---
         if st.session_state.logged_in:

@@ -384,7 +384,11 @@ def berikan_paket_ke_user(username, user_data, nama_paket, corporate_name="", or
             "batas_audio_menit": max_aud,
             "batas_teks_karakter": max_txt,
             "fup_dok_per_file": max_fup,
-            "fup_dok_harian_limit": max_fup_h
+            "fup_dok_harian_limit": max_fup_h,
+            # 🛒 Catat pembelian terakhir untuk sorting di admin panel
+            "last_purchase_at":    firestore.SERVER_TIMESTAMP,
+            "last_purchase_nama":  nama_paket,
+            "last_purchase_harga": nominal_masuk,
         }
 
         user_data.update(update_data)

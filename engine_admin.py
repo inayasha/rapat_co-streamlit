@@ -1675,7 +1675,21 @@ def render_tab_admin():
             f_name = h_data.get("filename", "Dokumen")
             prefix = h_data.get("ai_prefix", "")
 
-            with st.expander(f"📄 {prefix}{f_name}  ({tgl_str})"):
+            # Badge API info (hanya ada di history baru)
+            input_type   = h_data.get("input_type", "")
+            stt_provider = h_data.get("stt_provider", "")
+            stt_model    = h_data.get("stt_model", "")
+            ai_provider  = h_data.get("ai_provider", "")
+            ai_model     = h_data.get("ai_model", "")
+
+            api_badge = ""
+            if input_type:
+                input_icon = "🎙️ Audio" if input_type == "audio" else "📝 Teks"
+                stt_str    = f" · {stt_provider} ({stt_model})" if stt_provider and stt_provider != "-" else ""
+                ai_str     = f" · 🧠 {ai_provider} ({ai_model})" if ai_provider else ""
+                api_badge  = f"\n`{input_icon}{stt_str}{ai_str}`"
+
+            with st.expander(f"📄 {prefix}{f_name}  ({tgl_str}){api_badge}"):
                 tab_a_ai, tab_a_trans = st.tabs(["🧠 Hasil AI", "🎙️ Transkrip Asli"])
 
                 with tab_a_ai:
@@ -1915,7 +1929,7 @@ def render_tab_admin():
 
         sort_opt = st.selectbox("Urutkan berdasarkan:", [
             "Terbaru (Tanggal Daftar)", "Terlama (Tanggal Daftar)",
-            "Total Spending (Tertinggi)", "Total Aset (Tertinggi)",
+            "Pembelian Terakhir (Terbaru)", "Total Spending (Tertinggi)", "Total Aset (Tertinggi)",
             "Arsip Terbanyak", "Arsip Terbaru", "Abjad (A-Z)", "Abjad (Z-A)"
         ])
 
@@ -1970,6 +1984,12 @@ def render_tab_admin():
 
         if sort_opt == "Terbaru (Tanggal Daftar)":         filtered_users.sort(key=get_timestamp, reverse=True)
         elif sort_opt == "Terlama (Tanggal Daftar)":       filtered_users.sort(key=get_timestamp, reverse=False)
+        elif sort_opt == "Pembelian Terakhir (Terbaru)":
+            def get_last_purchase_ts(u):
+                t = u.get('last_purchase_at')
+                try: return t.timestamp() if t else 0
+                except: return 0
+            filtered_users.sort(key=get_last_purchase_ts, reverse=True)
         elif sort_opt == "Total Spending (Tertinggi)":     filtered_users.sort(key=lambda x: x['calc_spending'], reverse=True)
         elif sort_opt == "Total Aset (Tertinggi)":         filtered_users.sort(key=lambda x: x['calc_asset'], reverse=True)
         elif sort_opt == "Arsip Terbanyak":                filtered_users.sort(key=lambda x: x.get('calc_arsip_count', 0), reverse=True)
@@ -2066,7 +2086,21 @@ def render_tab_admin():
             str_spending = f"Rp {int(u_data['calc_spending']):,}".replace(",", ".")
 
             info_tambahan = ""
-            if sort_opt == "Arsip Terbanyak":
+            if sort_opt == "Pembelian Terakhir (Terbaru)":
+                lp_at    = u_data.get('last_purchase_at')
+                lp_nama  = u_data.get('last_purchase_nama', '-')
+                lp_harga = u_data.get('last_purchase_harga', 0)
+                if lp_at:
+                    try:
+                        wib_lp = datetime.timezone(datetime.timedelta(hours=7))
+                        tgl_lp = lp_at.astimezone(wib_lp).strftime("%d %b %Y")
+                        harga_lp = f"Rp {int(lp_harga):,}".replace(",", ".")
+                        info_tambahan = f" | 🛒 {tgl_lp} · {lp_nama} · {harga_lp}"
+                    except:
+                        info_tambahan = f" | 🛒 {lp_nama}"
+                else:
+                    info_tambahan = " | 🛒 Belum ada pembelian"
+            elif sort_opt == "Arsip Terbanyak":
                 info_tambahan = f" | 🗂️ {u_data.get('calc_arsip_count', 0)} Arsip"
             elif sort_opt == "Arsip Terbaru":
                 if u_data.get('calc_arsip_latest', 0) > 0:
